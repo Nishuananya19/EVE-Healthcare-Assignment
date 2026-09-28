@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  bookings Booking[]
+}
+
+model DiagnosticCentre {
+  id        Int      @id @default(autoincrement())
+  name      String
+  location  String
+  createdAt DateTime @default(now())
+
+  tests    CentreTest[]
+  bookings Booking[]
+}
+
+model DiagnosticTest {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+
+  centres  CentreTest[]
+  bookings Booking[]
+}
+
+model CentreTest {
+  id       Int     @id @default(autoincrement())
+  centreId Int
+  testId   Int
+  price    Decimal @db.Decimal(10, 2)
+
+  centre DiagnosticCentre @relation(fields: [centreId], references: [id])
+  test   DiagnosticTest   @relation(fields: [testId], references: [id])
+
+  @@unique([centreId, testId])
+}
+
+model Booking {
+  id              Int           @id @default(autoincrement())
+  userId          Int
+  testId          Int
+  centreId        Int
+  appointmentTime DateTime
+  amount          Decimal       @db.Decimal(10, 2)
+  status          BookingStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+
+  user    User             @relation(fields: [userId], references: [id])
+  test    DiagnosticTest   @relation(fields: [testId], references: [id])
+  centre  DiagnosticCentre @relation(fields: [centreId], references: [id])
+  payment Payment?
+}
+
+model Payment {
+  id        Int           @id @default(autoincrement())
+  bookingId Int           @unique
+  amount    Decimal       @db.Decimal(10, 2)
+  status    PaymentStatus
+  eventId   String?       @unique
+  createdAt DateTime      @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
